@@ -29,7 +29,6 @@ function AddBook() {
   const classes = useStyles();
   const addBook = () => {
     const { title, author, pages, year, quantity } = input;
-    console.log(input);
     const book = {
       title,
       author,
