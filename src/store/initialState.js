@@ -1,3 +1,5 @@
+import books from 'assets/data/books';
+
 export default {
-  toggle: false
+  books: [...books]
 };

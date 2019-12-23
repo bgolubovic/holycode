@@ -1,7 +1,7 @@
 export let reducer = (state, action) => {
   switch (action.type) {
-    case 'toggle':
-      return { ...state, toggle: !state.toggle };
+    case 'addBook':
+      return { ...state, books: [...action.payload] };
     default:
       return;
   }
