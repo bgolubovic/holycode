@@ -19,7 +19,12 @@ import Tooltip from '@material-ui/core/Tooltip';
 import FormControlLabel from '@material-ui/core/FormControlLabel';
 import Switch from '@material-ui/core/Switch';
 import DeleteIcon from '@material-ui/icons/Delete';
-import FilterListIcon from '@material-ui/icons/FilterList';
+import InputLabel from '@material-ui/core/InputLabel';
+import MenuItem from '@material-ui/core/MenuItem';
+import FormControl from '@material-ui/core/FormControl';
+import Select from '@material-ui/core/Select';
+import AddIcon from '@material-ui/icons/Add';
+import { useHistory } from 'react-router-dom';
 
 import { StateContext } from 'store/store';
 
@@ -126,7 +131,9 @@ EnhancedTableHead.propTypes = {
 const useToolbarStyles = makeStyles(theme => ({
   root: {
     paddingLeft: theme.spacing(2),
-    paddingRight: theme.spacing(1)
+    paddingRight: theme.spacing(1),
+    paddingTop: theme.spacing(4),
+    background: theme.palette.primary.main
   },
   highlight:
     theme.palette.type === 'light'
@@ -140,12 +147,30 @@ const useToolbarStyles = makeStyles(theme => ({
         },
   title: {
     flex: '1 1 100%'
+  },
+  formControl: {
+    margin: theme.spacing(4),
+    minWidth: 120
+  },
+  selectEmpty: {
+    marginTop: theme.spacing(2)
   }
 }));
 
 const EnhancedTableToolbar = props => {
   const classes = useToolbarStyles();
-  const { numSelected } = props;
+  const [author, setAuthor] = React.useState('');
+  const history = useHistory();
+  const { numSelected, filterData, authors } = props;
+
+  const addBook = () => {
+    history.push('/add-book');
+  };
+
+  const handleChange = event => {
+    setAuthor(event.target.value);
+    filterData(event.target.value);
+  };
 
   return (
     <Toolbar
@@ -162,9 +187,17 @@ const EnhancedTableToolbar = props => {
           {numSelected} selected
         </Typography>
       ) : (
-        <Typography className={classes.title} variant="h6" id="tableTitle">
-          Nutrition
-        </Typography>
+        <>
+          <Typography className={classes.title} variant="h6" id="tableTitle">
+            Books
+          </Typography>
+          <Tooltip title="Add" onClick={addBook}>
+            <IconButton aria-label="add">
+              <AddIcon fontSize="large" />
+              Add book
+            </IconButton>
+          </Tooltip>
+        </>
       )}
 
       {numSelected > 0 ? (
@@ -174,11 +207,24 @@ const EnhancedTableToolbar = props => {
           </IconButton>
         </Tooltip>
       ) : (
-        <Tooltip title="Filter list">
-          <IconButton aria-label="filter list">
-            <FilterListIcon />
-          </IconButton>
-        </Tooltip>
+        <>
+          <FormControl className={classes.formControl}>
+            <InputLabel id="demo-simple-select-label">Author</InputLabel>
+            <Select
+              labelId="demo-simple-select-label"
+              id="demo-simple-select"
+              value={author}
+              onChange={handleChange}
+            >
+              <MenuItem value={'all'}>{'Any author'}</MenuItem>
+              {authors.map((author, index) => (
+                <MenuItem key={index} value={author}>
+                  {author}
+                </MenuItem>
+              ))}
+            </Select>
+          </FormControl>
+        </>
       )}
     </Toolbar>
   );
@@ -215,13 +261,21 @@ const useStyles = makeStyles(theme => ({
 export default function EnhancedTable() {
   const classes = useStyles();
   const [order, setOrder] = React.useState('asc');
-  const [orderBy, setOrderBy] = React.useState('calories');
+  const [orderBy, setOrderBy] = React.useState('title');
   const [selected, setSelected] = React.useState([]);
   const [page, setPage] = React.useState(0);
   const [dense, setDense] = React.useState(false);
+  const [sidebar, setSidebar] = React.useState(false);
   const [rowsPerPage, setRowsPerPage] = React.useState(5);
   const { state } = React.useContext(StateContext);
-  const rows = state.books;
+  const [rows, setRows] = React.useState(state.books);
+
+  const filterData = author => {
+    let filteredData;
+    if (author === 'all') filteredData = state.books;
+    else filteredData = rows.filter(row => row.author === author);
+    setRows(filteredData);
+  };
 
   const handleRequestSort = (event, property) => {
     const isDesc = orderBy === property && order === 'desc';
@@ -239,6 +293,7 @@ export default function EnhancedTable() {
   };
 
   const handleClick = (event, name) => {
+    setSidebar(!sidebar);
     const selectedIndex = selected.indexOf(name);
     let newSelected = [];
 
@@ -276,10 +331,16 @@ export default function EnhancedTable() {
   const emptyRows =
     rowsPerPage - Math.min(rowsPerPage, rows.length - page * rowsPerPage);
 
+  const authors = state.books.map(book => book.author);
+
   return (
     <div className={classes.root}>
       <Paper className={classes.paper}>
-        <EnhancedTableToolbar numSelected={selected.length} />
+        <EnhancedTableToolbar
+          numSelected={selected.length}
+          filterData={filterData}
+          authors={authors}
+        />
         <TableContainer>
           <Table
             className={classes.table}
@@ -300,13 +361,13 @@ export default function EnhancedTable() {
               {stableSort(rows, getSorting(order, orderBy))
                 .slice(page * rowsPerPage, page * rowsPerPage + rowsPerPage)
                 .map((row, index) => {
-                  const isItemSelected = isSelected(row.name);
+                  const isItemSelected = isSelected(row.title);
                   const labelId = `enhanced-table-checkbox-${index}`;
 
                   return (
                     <TableRow
                       hover
-                      onClick={event => handleClick(event, row.name)}
+                      onClick={event => handleClick(event, row.title)}
                       role="checkbox"
                       aria-checked={isItemSelected}
                       tabIndex={-1}
@@ -327,7 +388,7 @@ export default function EnhancedTable() {
                       >
                         {row.title}
                       </TableCell>
-                      <TableCell align="right">{row.author}</TableCell>
+                      <TableCell align="left">{row.author}</TableCell>
                       <TableCell align="right">{row.pages}</TableCell>
                       <TableCell align="right">{row.year}</TableCell>
                       <TableCell align="right">{row.quantity}</TableCell>
